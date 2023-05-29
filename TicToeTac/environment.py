@@ -4,6 +4,11 @@ import gymnasium
 
 
 class TicTacToe(gymnasium.Env):
+    """
+    ------------------------[Deployment]--------------------------
+    * This environment will be used after we trained the model.
+    """
+
     def __init__(self):
         # Initialize the game
         pygame.init()
@@ -37,6 +42,50 @@ class TicTacToe(gymnasium.Env):
         self.running = True
         self.clicked = False
         self.game_ended = False
+        self.done = False
+
+        return self.game_board
+
+    # this is used for reinforcement learning agents
+    def steps(self, actions):
+        agent_1 = (actions[0] % 3, actions[0] // 3)
+        agent_2 = (actions[1] % 3, actions[1] // 3)
+        reward = []
+
+        print("agent_1: ", agent_1, " Agent_2: ", agent_2)
+
+        if (
+            self.game_board[agent_1[0]][agent_1[1]] == -1
+            and self.game_board[agent_2[0]][agent_2[1]] == -1
+        ):
+            self.game_board[agent_1[0]][agent_1[1]] = 1
+            self.game_board[agent_2[0]][agent_2[1]] = 0
+
+            self.empty -= 2
+            self.action_space.n = self.empty
+            print("Board: ", self.game_board)
+            winner = self.winner_check()
+
+            if winner == 1:
+                print("Winner is 1")
+                reward = [1, -1]  # Positive reward for agent 1 and negative for agent 2
+                self.done = True
+            elif winner == 0:
+                print("Winner is 0")
+                reward = [-1, 1]
+                self.done = True
+            elif self.empty == 0:
+                print("Draw")
+                reward = [0, 0]
+                self.done = True
+            else:
+                reward = [-0.1, -0.1]
+                self.done = False
+        print("Hello: ")
+        obs = self.game_board.flatten()
+        print("end")
+
+        return obs, reward, self.done, {}
 
     def step(self):
         while self.running:
@@ -195,12 +244,23 @@ class TicTacToe(gymnasium.Env):
             positions = [self.game_board[row][col] for row, col in comb]
             print("Position: ", positions)
             if all(position == 1 for position in positions):
-                return 1
+                return 1  # Circle
             elif all(position == 0 for position in positions):
-                return 0
+                return 0  # X
 
         return None
 
 
 c = TicTacToe()
-c.step()
+done = False
+observation = c.reset()
+import time
+
+while not done:
+    action_smaple = np.random.randint(0, 8, size=2)
+    print(action_smaple)
+    obs, reward, done, info = c.steps(action_smaple)
+    print("Done: ", done)
+    # time.sleep(3)
+
+    print("Reward: ", reward)
