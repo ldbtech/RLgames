@@ -1,16 +1,16 @@
 import tensorflow as tf
 
 
-class Actor:
+class Actor(tf.keras.Model):
     """
-    This is neural network will be used on different models.
-    Please be advised that this is simplest forward prop NN, we will be making deeper,
-    after finishing initial model
+    This is a neural network that will be used in different models.
+    Please be advised that this is a simple forward prop NN; we can make it deeper
+    after finishing the initial model.
     """
 
-    def __init__(self, input_shape, num_actions):
+    def __init__(self, input_size, num_actions):
         super(Actor, self).__init__()
-        self.input_shape = input_shape
+        self.input_size = input_size
         self.model = tf.keras.models.Sequential(
             [
                 tf.keras.layers.Dense(64, activation="relu"),
@@ -18,6 +18,7 @@ class Actor:
                 tf.keras.layers.Dense(num_actions, activation="linear"),
             ]
         )
+        self.model.compile(optimizer="adam", loss="mse")
 
-    def forward(self):
-        return self.model(self.input_shape)
+    def call(self, inputs):
+        return self.model(inputs)

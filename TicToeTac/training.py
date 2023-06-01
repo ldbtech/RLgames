@@ -16,6 +16,10 @@ def main():
         epsilon_min=0.01,
         memory_size=500,
     )
+    agent_a.model.compile(
+        optimizer="adam", loss="mse"
+    )  # Add compile method for agent_a
+
     agent_b = DeepQ(
         state_size=state_size,
         action_size=action_size,
@@ -25,6 +29,10 @@ def main():
         epsilon_min=0.01,
         memory_size=500,
     )
+    agent_b.model.compile(
+        optimizer="adam", loss="mse"
+    )  # Add compile method for agent_b
+
     batch_size = 32
     priority = env.agent_priority()
 
@@ -41,14 +49,16 @@ def main():
             while action_a == action_b:
                 action_a = agent_a.takeAction(state=state)
                 action_b = agent_b.takeAction(state=state)
+
             next_state, done, reward, info = env.step(
                 [action_a, action_b], priority=priority
             )
             next_state = next_state.reshape(1, state_size)
             transition_a = (state, action_a, reward[0], next_state, done)
-            agent_a.remember(transition=transition_a)
+            agent_a.remember(transition_a)
             transition_b = (state, action_b, reward[1], next_state, done)
-            agent_b.remember(transition=transition_b)
+            agent_b.remember(transition_b)
+
             state = next_state
             print("reward: ", reward)
             total_reward_a += reward[0]
@@ -58,12 +68,13 @@ def main():
                 agent_a.replay(batch_size=batch_size)
             if len(agent_b.memory) > batch_size:
                 agent_b.replay(batch_size=batch_size)
-            if ep % 100 == 0:
-                print(
-                    "Episodes: {}, total_reward A: {}, total_reward B: {}".format(
-                        ep, total_reward_a, total_reward_b
-                    )
+
+        if ep % 100 == 0:
+            print(
+                "Episodes: {}, total_reward A: {}, total_reward B: {}".format(
+                    ep, total_reward_a, total_reward_b
                 )
+            )
 
     agent_a.save_model("SavedModel_agentA")
     agent_b.save_model("SavedModel_agentB")

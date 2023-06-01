@@ -56,7 +56,8 @@ class DeepQ:
 
     def replay(self, batch_size):
         minibatch = np.random.choice(len(self.memory), batch_size, replace=False)
-        for transition in minibatch:
+        for idx in minibatch:
+            transition = self.memory[idx]
             target = transition[2]
             if not transition[4]:
                 target = transition[2] + self.discount_factor * np.amax(
