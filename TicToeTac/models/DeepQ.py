@@ -1,6 +1,7 @@
 import numpy as np
 from collections import deque
-from NN import Actor
+import tensorflow as tf
+from .NN import Actor
 
 
 class DeepQ:
@@ -19,22 +20,28 @@ class DeepQ:
         self.discount_factor = discount_factor
         self.epsilon_min = epsilon_min
         self.epsilon = 1.0
-        self.memory = deque(memory_size)
+        self.memory = deque(maxlen=memory_size)
         self.state_size = state_size
         self.action_size = action_size
         self.model = Actor(self.state_size, self.action_size)
 
+    def convert_action_to_coords(self, action):
+        col = action % 3
+        row = action // 3
+        return (col, row)
+
     def generate_random_coords(self):
         coords = []
-        for _ in range(2):
-            col = np.random.randint(0, 3)
-            row = np.random.randint(0, 3)
-            coords.append((col, row))
-
-        while coords[0] == coords[1]:
-            coords[1] = (np.random.randint(0, 3), np.random.randint(0, 3))
+        col = np.random.randint(0, 3)
+        row = np.random.randint(0, 3)
+        coords.append((col, row))
 
         return coords
+
+    def convert_action_to_coords(self, action):
+        col = action % 3
+        row = action // 3
+        return (col, row)
 
     # Transition is in form of tuple containing: state, action, reward, next_state, done
     def remember(self, transition):
@@ -42,10 +49,10 @@ class DeepQ:
 
     def takeAction(self, state):
         if np.random.rand() <= self.epsilon:
-            return np.random.randint(self.action_size)
+            return self.generate_random_coords()
 
         action_value = self.model.predict(state)
-        return np.argmax(action_value[0])
+        return self.convert_action_to_coords(np.argmax(action_value[0]))
 
     def replay(self, batch_size):
         minibatch = np.random.choice(len(self.memory), batch_size, replace=False)

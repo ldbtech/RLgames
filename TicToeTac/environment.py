@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
 import gymnasium
+import pickle as pk
 
 
 class TicTacToe(gymnasium.Env):
