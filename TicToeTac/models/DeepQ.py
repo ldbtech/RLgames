@@ -64,7 +64,7 @@ class DeepQ:
                     self.model.predict(transition[3])[0]
                 )
             target_f = self.model.predict(transition[0])
-            target_f[0][transition[1]] = target
+            target_f[0, transition[1]] = target
             self.model.fit(transition[0], target_f, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
