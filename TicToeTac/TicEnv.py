@@ -5,8 +5,8 @@ import numpy as np
 class TicEnv(gymnasium.Env):
     def __init__(self):
         self.observation_space = gymnasium.spaces.Box(low=0, high=1, shape=(9,))
-        self.empty_cell = 9
-        self.max_steps = 5
+        self.empty = 9
+        self.max_steps = 20
         self.reset()
 
     def reset(self):
@@ -33,30 +33,37 @@ class TicEnv(gymnasium.Env):
         return [priority, 1 - priority]
 
     def step(self, agents, priority):
-        agent_a = agents[0]
-        agent_b = agents[1]
+        print("Lovely Agents: ", agents)
+        agent_a = agents[0]  # Fix: Access the first element of the agents list
+        agent_b = agents[1]  # Fix: Access the second element of the agents list
+
         # Check if both agents have different coordinates
         if -1 in self.game_board:
             if (
-                self.game_board[agent_a[0][0]][agent_a[0][1]] == -1
-                and self.game_board[agent_b[0][0]][agent_b[0][1]] == -1
+                self.game_board[agent_a[0]][agent_a[1]] == -1
+                and self.game_board[agent_b[0]][agent_b[1]] == -1
             ):
                 if priority[0] == 0:  # Agent_a goes first.
-                    self.game_board[agent_a[0][0]][agent_a[0][1]] = 0
-                    self.game_board[agent_b[0][0]][agent_b[0][1]] = 1
+                    self.game_board[agent_a[0]][agent_a[1]] = 0
+                    self.game_board[agent_b[0]][agent_b[1]] = 1
                 else:
-                    self.game_board[agent_b[0][0]][agent_b[0][1]] = 1
-                    self.game_board[agent_a[0][0]][agent_a[0][1]] = 0
+                    self.game_board[agent_b[0]][agent_b[1]] = 1
+                    self.game_board[agent_a[0]][agent_a[1]] = 0
+                self.empty -= 2
+                self.action_space.n = self.empty
 
         self.steps += 1
         # steps cannot exceed max_steps for each agent.
         # If a winner has been determined, no need to continue.
-        if self.steps > 20 or self.game_rule() == 1 or self.game_rule() == 0:
+        winner = self.game_rule()
+        if self.steps > self.max_steps or winner == 1 or winner == 0 or self.empty == 0:
             self.done = True
         (
             reward_a,
             reward_b,
-        ) = self.calculate_rewards()  # Calculate rewards for each agent
+        ) = self.calculate_rewards(
+            winner=winner
+        )  # Calculate rewards for each agent
 
         return self.game_board, self.done, [reward_a, reward_b], {}
 
@@ -82,28 +89,18 @@ class TicEnv(gymnasium.Env):
                 return 0  # Circle
         return None
 
-    def calculate_rewards(self):
-        winning_coordinate = [
-            [(0, 0), (0, 1), (0, 2)],
-            [(1, 0), (1, 1), (1, 2)],
-            [(2, 0), (2, 1), (2, 2)],
-            [(0, 0), (1, 0), (2, 0)],
-            [(0, 1), (1, 1), (2, 1)],
-            [(0, 2), (1, 2), (2, 2)],
-            [(0, 0), (1, 1), (2, 2)],
-            [(0, 2), (1, 1), (2, 0)],
-        ]
+    def calculate_rewards(self, winner):
+        if winner == 0:
+            print("Winner is 0")
+            reward = [1, -1]
+        elif winner == 1:
+            print("Winner X")
+            reward = [-1, 1]
+        elif self.empty == 0:
+            print("Draw")
+            reward = [0, 0]
+        else:
+            print("Weirdo")
+            reward = [-0.1, -0.1]
 
-        for comb in winning_coordinate:
-            positions = [self.game_board[row][col] for row, col in comb]
-            if all(position == 1 for position in positions):
-                print("winning: X")
-                return 1, 0
-            elif all(position == 0 for position in positions):
-                print("winning: 0")
-                return 0, 1
-
-        return 0, 0  # No winner, return equal rewards
-
-    def render(self):
-        pass
+        return reward[0], reward[1]  # No winner, return equal rewards

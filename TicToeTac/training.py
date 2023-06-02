@@ -2,7 +2,7 @@ from TicEnv import TicEnv
 from models.DeepQ import DeepQ
 
 
-def main():
+def training():
     epsiodes = 1000
     env = TicEnv()
     state_size = env.observation_space.shape[0]
@@ -35,6 +35,8 @@ def main():
 
     batch_size = 32
     priority = env.agent_priority()
+    all_rewards_a = []
+    all_rewards_b = []
 
     for ep in range(epsiodes):
         state = env.reset()
@@ -49,9 +51,13 @@ def main():
             while action_a == action_b:
                 action_a = agent_a.takeAction(state=state)
                 action_b = agent_b.takeAction(state=state)
+            print("Action_a: ", action_a, " Action_b: ", action_b)
+            agent_a_ = (action_a[0][0], action_a[0][1])
+            agent_b_ = (action_b[0][0], action_b[0][1])
 
+            print("Agent A : {}, agent B: {}".format(action_a, action_b))
             next_state, done, reward, info = env.step(
-                [action_a, action_b], priority=priority
+                [agent_a_, agent_b_], priority=priority
             )
             next_state = next_state.reshape(1, state_size)
             transition_a = (state, action_a, reward[0], next_state, done)
@@ -75,9 +81,16 @@ def main():
                     ep, total_reward_a, total_reward_b
                 )
             )
+        all_rewards_a.append(total_reward_a)
+        all_rewards_b.append(total_reward_b)
 
     agent_a.save_model("SavedModel_agentA")
     agent_b.save_model("SavedModel_agentB")
+    return all_rewards_a, all_rewards_b
+
+
+def main():
+    training()
 
 
 if __name__ == "__main__":

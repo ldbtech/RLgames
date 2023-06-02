@@ -52,7 +52,7 @@ class DeepQ:
             return self.generate_random_coords()
 
         action_value = self.model.predict(state)
-        return self.convert_action_to_coords(np.argmax(action_value[0]))
+        return [self.convert_action_to_coords(np.argmax(action_value[0]))]
 
     def replay(self, batch_size):
         minibatch = np.random.choice(len(self.memory), batch_size, replace=False)
