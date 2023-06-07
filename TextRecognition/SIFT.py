@@ -109,9 +109,10 @@ class SIFT:
         return keypoints
 
     # Step 4: Keypoint orientation assignment
-    def assign_keypoint_orientations(keypoints, gaussian_pyramid):
+    def assign_keypoint_orientations(self, keypoints, gaussian_pyramid):
         # Implement keypoint orientation assignment
         # Return the keypoints with assigned orientation
+        keypoint_ = []
         num_bins = 36
         angel_step = 2 * np.pi / num_bins
         for keypoint in keypoints:
@@ -156,15 +157,74 @@ class SIFT:
                     dominant_orientations.append(angle)
 
             # Assign the dominant orientation(s) to the keypoint
-            keypoint.append(dominant_orientations)
-
-    return keypoints
+            keypoint_.append(dominant_orientations)
+        return keypoint_
 
     # Step 5: Keypoint descriptor computation
-    def compute_keypoint_descriptors(keypoints, gaussian_pyramid):
-        # Implement keypoint descriptor computation
-        # Return the computed descriptor
-        pass
+    def compute_keypoint_descriptors(self, keypoints, gaussian_pyramid):
+        descriptor_size = 16  # Size of the descriptor patch (e.g., 16x16)
+        descriptor_scale = 3  # Scaling factor for the descriptor patch
+        descriptor_orientation_bins = 8  # Number of orientation bins in the descriptor
+
+        # Iterate over the keypoints
+        for keypoint in keypoints:
+            octave_idx, scale, row, col, orientations = keypoint
+
+            # Get the Gaussian image for the keypoint's octave and scale
+            gaussian_image = gaussian_pyramid[octave_idx][scale]
+
+            # Compute the descriptor
+            descriptor = np.zeros(
+                (descriptor_size, descriptor_size, descriptor_orientation_bins)
+            )
+
+            for i in range(-descriptor_size // 2, descriptor_size // 2):
+                for j in range(-descriptor_size // 2, descriptor_size // 2):
+                    # Rotate the descriptor patch based on the keypoint orientation(s)
+                    for orientation in orientations:
+                        # Compute the rotated coordinates within the descriptor patch
+                        sin_theta = np.sin(orientation)
+                        cos_theta = np.cos(orientation)
+                        new_i = (cos_theta * i - sin_theta * j) / descriptor_scale
+                        new_j = (sin_theta * i + cos_theta * j) / descriptor_scale
+
+                        # Translate the rotated coordinates to the image coordinates
+                        x = col + int(np.round(new_j))
+                        y = row + int(np.round(new_i))
+
+                        # Calculate the gradient magnitude and angle at the rotated position
+                        dx = gaussian_image[y, x + 1] - gaussian_image[y, x - 1]
+                        dy = gaussian_image[y + 1, x] - gaussian_image[y - 1, x]
+                        magnitude = np.sqrt(dx**2 + dy**2)
+                        angle = np.arctan2(dy, dx)
+
+                        # Convert the angle to the range [0, 2pi]
+                        if angle < 0:
+                            angle += 2 * np.pi
+
+                        # Calculate the bin index for the orientation histogram
+                        bin_index = int(
+                            angle * descriptor_orientation_bins / (2 * np.pi)
+                        )
+
+                        # Accumulate the gradient magnitude in the corresponding bin
+                        descriptor[
+                            i + descriptor_size // 2,
+                            j + descriptor_size // 2,
+                            bin_index,
+                        ] += magnitude
+
+            # Normalize the descriptor
+            descriptor /= np.linalg.norm(descriptor)
+
+            # Threshold the descriptor values to 0.2 and re-normalize
+            descriptor[descriptor > 0.2] = 0.2
+            descriptor /= np.linalg.norm(descriptor)
+
+            # Flatten the descriptor and assign it to the keypoint
+            keypoint.append(descriptor.flatten())
+
+        return keypoints
 
 
 # Main function
